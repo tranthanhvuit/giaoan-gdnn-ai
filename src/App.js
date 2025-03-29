@@ -1,92 +1,103 @@
 import React, { useState } from "react";
+import "./index.css";
 
-const API_URL = "https://backend-giaoan-gdnn.onrender.com/generate";
+const API_URL = "https://backend-giaoan-gdnn.onrender.com";
 
-export default function App() {
+function App() {
   const [selectedFile, setSelectedFile] = useState(null);
-  const [loaiGiaoAn, setLoaiGiaoAn] = useState("ly_thuyet");
-  const [ketQua, setKetQua] = useState(null);
+  const [loaiGiaoAn, setLoaiGiaoAn] = useState("lythuyet");
   const [loading, setLoading] = useState(false);
 
   const handleFileChange = (event) => {
     setSelectedFile(event.target.files[0]);
   };
 
-  const handleLoaiChange = (event) => {
-    setLoaiGiaoAn(event.target.value);
-  };
-
   const handleSubmit = async () => {
-    if (!selectedFile) {
-      alert("Vui lòng chọn file đề cương.");
-      return;
-    }
+  if (!selectedFile) {
+    alert("Vui lòng chọn file đề cương.");
+    return;
+  }
 
-    const formData = new FormData();
-    formData.append("file", selectedFile);
-    formData.append("loai", loaiGiaoAn);
+  const formData = new FormData();
+  formData.append("file", selectedFile);
+  formData.append("loai", loaiGiaoAn);
 
-    setLoading(true);
-    setKetQua(null);
+  setLoading(true);
 
-    try {
-      const response = await fetch(API_URL, {
-        method: "POST",
-        body: formData,
-      });
+  try {
+    const response = await fetch(`${API_URL}/generate-docx`, {
+      method: "POST",
+      body: formData,
+    });
 
-      const data = await response.json();
-      setKetQua(data.result);
-    } catch (error) {
-      setKetQua("Lỗi khi gửi dữ liệu đến máy chủ.");
-      console.error("Lỗi khi gọi API:", error);
-    }
+    if (!response.ok) throw new Error("Không thể tạo file .docx");
 
-    setLoading(false);
-  };
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "giao_an_output.docx";
+    a.click();
+    window.URL.revokeObjectURL(url);
+  } catch (error) {
+    alert("Xuất file thất bại: " + error.message);
+    console.error("Lỗi khi gọi API:", error);
+  }
+
+  setLoading(false);
+};
+
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
-      <div className="max-w-3xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-center mb-4">Tạo Giáo Án Tự Động</h1>
+    <div className="min-h-screen bg-gray-100 p-4">
+      <h1 className="text-2xl font-bold text-center mb-4">Tạo Giáo Án Tự Động</h1>
 
-          <div className="flex space-x-4 justify-center">
-            <button className="px-4 py-2 bg-blue-500 text-white rounded">Lý thuyết</button>
-            <button className="px-4 py-2 bg-green-500 text-white rounded">Thực hành</button>
-            <button className="px-4 py-2 bg-orange-500 text-white rounded">Tích hợp</button>
-          </div>
-        </div>
-
-        <div className="bg-white shadow-md rounded-xl p-6 flex items-center space-x-4">
-          <input type="file" onChange={handleFileChange} className="hidden" id="fileInput" />
-          <label htmlFor="fileInput" className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-6 rounded cursor-pointer">
-            Choose File
-          </label>
-
-          <select className="bg-black text-white px-4 py-2 rounded" value={loaiGiaoAn} onChange={handleLoaiChange}>
-            <option value="ly_thuyet">Lý thuyết</option>
-            <option value="thuc_hanh">Thực hành</option>
-            <option value="tich_hop">Tích hợp</option>
-          </select>
-
-          <button onClick={handleSubmit} className="ml-auto bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
-            {loading ? "Đang tạo..." : "Tạo giáo án"}
-          </button>
-        </div>
-
-        {selectedFile && (
-          <div className="mt-4 text-center text-sm text-gray-600">
-            Đã chọn: <strong>{selectedFile.name}</strong>
-          </div>
-        )}
-
-        {ketQua && (
-          <div className="mt-6 p-4 bg-green-100 text-green-700 rounded shadow whitespace-pre-wrap">
-            {ketQua}
-          </div>
-        )}
+      <div className="flex justify-center gap-2 mb-4">
+        <button
+          className={`px-4 py-2 rounded ${
+            loaiGiaoAn === "lythuyet" ? "bg-blue-500 text-white" : "bg-white border"
+          }`}
+          onClick={() => setLoaiGiaoAn("lythuyet")}
+        >
+          Lý thuyết
+        </button>
+        <button
+          className={`px-4 py-2 rounded ${
+            loaiGiaoAn === "thuchanh" ? "bg-green-500 text-white" : "bg-white border"
+          }`}
+          onClick={() => setLoaiGiaoAn("thuchanh")}
+        >
+          Thực hành
+        </button>
+        <button
+          className={`px-4 py-2 rounded ${
+            loaiGiaoAn === "tichhop" ? "bg-orange-500 text-white" : "bg-white border"
+          }`}
+          onClick={() => setLoaiGiaoAn("tichhop")}
+        >
+          Tích hợp
+        </button>
       </div>
+
+      <div className="flex justify-center gap-2 mb-4">
+        <input type="file" onChange={handleFileChange} className="border p-2" />
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+        >
+          {loading ? "Đang xử lý..." : "Tạo giáo án"}
+        </button>
+      </div>
+
+      {selectedFile && (
+        <p className="text-center text-sm text-gray-600">
+          Đã chọn: <strong>{selectedFile.name}</strong>
+        </p>
+      )}
     </div>
   );
 }
+
+export default App;
